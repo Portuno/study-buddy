@@ -20,7 +20,7 @@ export const useStudySessions = () => {
         .from('study_sessions')
         .select('*')
         .eq('user_id', user.id)
-        .order('start_time', { ascending: false })
+        .order('created_at', { ascending: false })
 
       if (error) throw error
       setSessions(data || [])
@@ -342,79 +342,10 @@ export const useSubjects = () => {
   }
 }
 
-// Hook para topics
-export const useTopics = () => {
-  const { user } = useAuth()
-  const [topics, setTopics] = useState<Tables<'topics'>[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
-  const [lastFetch, setLastFetch] = useState<number>(0)
-
-  const fetchTopics = async (subjectId?: string) => {
-    if (!user) return
-    
-    // Prevent multiple rapid fetches
-    const now = Date.now()
-    if (now - lastFetch < 1000) return // Wait at least 1 second between fetches
-    
-    try {
-      setLoading(true)
-      setError(null)
-      setLastFetch(now)
-      
-      let query = supabase
-        .from('topics')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('name')
-
-      if (subjectId) {
-        query = query.eq('subject_id', subjectId)
-      }
-
-      const { data, error } = await query
-      if (error) throw error
-      setTopics(data || [])
-    } catch (error) {
-      console.error('Error fetching topics:', error)
-      setError(error as Error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const addTopic = async (topic: Omit<Inserts<'topics'>, 'user_id'>) => {
-    if (!user) return { error: 'No user logged in' }
-    
-    try {
-      const { data, error } = await supabase
-        .from('topics')
-        .insert([{ ...topic, user_id: user.id }])
-        .select()
-        .single()
-
-      if (error) throw error
-      setTopics(prev => [...prev, data])
-      return { data, error: null }
-    } catch (error) {
-      console.error('Error adding topic:', error)
-      return { error }
-    }
-  }
-
-  // Don't auto-fetch topics
-  useEffect(() => {
-    // Topics will be fetched manually when needed
-  }, [])
-
-  return {
-    topics,
-    loading,
-    error,
-    fetchTopics,
-    addTopic,
-  }
-}
+// Hook para topics - REMOVIDO: La funcionalidad de topics fue eliminada
+// export const useTopics = () => {
+//   // ... código removido
+// }
 
 // Hook para materiales de estudio
 export const useStudyMaterials = () => {

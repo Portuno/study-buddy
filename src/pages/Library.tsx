@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { usePrograms } from "@/hooks/useSupabase";
 import { useSubjects } from "@/hooks/useSupabase";
-import { useTopics } from "@/hooks/useSupabase";
+// import { useTopics } from "@/hooks/useSupabase"; // REMOVIDO: useTopics fue eliminado
 import { useStudyMaterials } from "@/hooks/useSupabase";
 import { FileStatusBadge } from "@/components/FileStatusBadge";
 import { FileUploadModal } from "@/components/FileUploadModal";
@@ -418,7 +418,7 @@ export default function Library() {
           </div>
         )}
 
-        {/* Topics View for selected subject */}
+        {/* Subject View for selected subject */}
         {selectedSubject && (
           <div className="space-y-4">
             <SubjectView
@@ -469,7 +469,7 @@ export default function Library() {
         )}
       </div>
 
-      {/* Floating Action Button - Only show when not in topic view */}
+      {/* Floating Action Button - Only show when not in subject view */}
       {!selectedSubject && (
         <div className="fixed bottom-24 right-6">
           {/* Main Floating Button */}

@@ -22,7 +22,7 @@ interface SubjectViewProps {
     end_date?: string | null;
   };
   materials: any[];
-  onAddFile: () => void;
+  onAddFile: (opts?: { subjectId?: string; folderName?: string }) => void;
 }
 
 interface SubjectEvent {
@@ -231,7 +231,9 @@ export const SubjectView = ({ subject, materials, onAddFile }: SubjectViewProps)
 
   const handleAddFileToFolder = (folderId: string) => {
     setSelectedFolderId(folderId);
-    // This would open a file upload modal for the specific folder
+    const folder = folders.find(f => f.id === folderId);
+    const folderName = folder?.name;
+    onAddFile({ subjectId: subject.id, folderName });
     console.log('Add file to folder:', folderId);
   };
 
@@ -463,13 +465,22 @@ export const SubjectView = ({ subject, materials, onAddFile }: SubjectViewProps)
                 <span className="text-lg">📁</span>
                 Folders
               </h3>
-              <Button
-                onClick={() => setShowCreateFolder(true)}
-                className="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-4 py-2"
-              >
-                <Plus size={16} className="mr-2" />
-                Create Folder
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => onAddFile({ subjectId: subject.id })}
+                  className="bg-pink-400 hover:bg-pink-500 text-white rounded-lg px-4 py-2"
+                >
+                  <Upload size={16} className="mr-2" />
+                  Add File
+                </Button>
+                <Button
+                  onClick={() => setShowCreateFolder(true)}
+                  className="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-4 py-2"
+                >
+                  <Plus size={16} className="mr-2" />
+                  Create Folder
+                </Button>
+              </div>
             </div>
 
             {folders.length === 0 ? (

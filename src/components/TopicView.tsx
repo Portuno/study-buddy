@@ -20,7 +20,7 @@ interface TopicViewProps {
     end_date?: string | null;
   };
   materials: any[];
-  onAddFile: () => void;
+  onAddFile: (opts?: { subjectId?: string; folderName?: string }) => void;
   onBack: () => void;
 }
 

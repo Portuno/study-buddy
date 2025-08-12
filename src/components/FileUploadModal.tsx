@@ -11,6 +11,9 @@ interface FileUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUploadComplete: () => void;
+  preselectedSubjectId?: string;
+  defaultTopicName?: string;
+  isTopicOptional?: boolean;
 }
 
 interface FileWithPreview {
@@ -48,12 +51,12 @@ const formatFileSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-export const FileUploadModal = ({ isOpen, onClose, onUploadComplete }: FileUploadModalProps) => {
+export const FileUploadModal = ({ isOpen, onClose, onUploadComplete, preselectedSubjectId, defaultTopicName, isTopicOptional = false }: FileUploadModalProps) => {
   const { user } = useAuth();
   const { subjects } = useSubjects();
   const [files, setFiles] = useState<FileWithPreview[]>([]);
-  const [selectedSubject, setSelectedSubject] = useState<string>('');
-  const [topicName, setTopicName] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState<string>(preselectedSubjectId || '');
+  const [topicName, setTopicName] = useState(defaultTopicName || '');
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
@@ -101,96 +104,71 @@ export const FileUploadModal = ({ isOpen, onClose, onUploadComplete }: FileUploa
 
   const uploadFile = async (fileWithPreview: FileWithPreview, index: number): Promise<string> => {
     const { file } = fileWithPreview;
-    
-    // Crear nombre único para el archivo
     const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-    const filePath = `${user?.id}/${selectedSubject}/${topicName}/${fileName}`;
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const sanitizedSubject = selectedSubject || 'unknown-subject';
+    const sanitizedTopic = (topicName || '').trim();
+    const filePath = sanitizedTopic
+      ? `${user?.id}/${sanitizedSubject}/${sanitizedTopic}/${uniqueName}`
+      : `${user?.id}/${sanitizedSubject}/${uniqueName}`;
 
-    // Subir archivo a Supabase Storage
     const { data, error } = await supabase.storage
       .from('study-materials')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
+      .upload(filePath, file, { cacheControl: '3600', upsert: false });
 
     if (error) throw error;
     return data.path;
   };
 
   const handleUpload = async () => {
-    if (!selectedSubject || !topicName || files.length === 0) return;
+    if (!selectedSubject || files.length === 0) return;
+    if (!isTopicOptional && !topicName) return;
 
     setIsUploading(true);
 
     try {
-      // Crear o verificar que existe el topic
-      let topicId = '';
-      
-      // Aquí podrías crear el topic si no existe
-      // Por ahora usamos un ID temporal
-      topicId = `topic-${Date.now()}`;
-
-      // Subir archivos uno por uno
       for (let i = 0; i < files.length; i++) {
         const fileWithPreview = files[i];
-        
-        // Actualizar estado a uploading
-        setFiles(prev => prev.map((f, idx) => 
-          idx === i ? { ...f, status: 'uploading', progress: 0 } : f
-        ));
+        setFiles(prev => prev.map((f, idx) => idx === i ? { ...f, status: 'uploading', progress: 0 } : f));
 
         try {
-          // Simular progreso de subida
           for (let progress = 0; progress <= 100; progress += 10) {
-            setFiles(prev => prev.map((f, idx) => 
-              idx === i ? { ...f, progress } : f
-            ));
+            setFiles(prev => prev.map((f, idx) => idx === i ? { ...f, progress } : f));
             await new Promise(resolve => setTimeout(resolve, 100));
           }
 
-          // Subir archivo
           const filePath = await uploadFile(fileWithPreview, i);
 
-          // Crear registro en la base de datos
           const { error: dbError } = await supabase
             .from('study_materials')
             .insert({
-              user_id: user?.id,
+              user_id: user?.id as string,
               subject_id: selectedSubject,
               title: fileWithPreview.file.name,
               type: fileWithPreview.type,
-              file_url: filePath,
-              content: null
+              file_path: filePath,
+              file_size: fileWithPreview.file.size,
+              mime_type: fileWithPreview.file.type,
+              content: null,
             });
 
           if (dbError) throw dbError;
 
-          // Marcar como completado
-          setFiles(prev => prev.map((f, idx) => 
-            idx === i ? { ...f, status: 'completed', progress: 100 } : f
-          ));
-
-        } catch (error) {
+          setFiles(prev => prev.map((f, idx) => idx === i ? { ...f, status: 'completed', progress: 100 } : f));
+        } catch (error: any) {
           console.error('Error uploading file:', error);
-          setFiles(prev => prev.map((f, idx) => 
-            idx === i ? { ...f, status: 'error', error: error.message } : f
-          ));
+          setFiles(prev => prev.map((f, idx) => idx === i ? { ...f, status: 'error', error: error.message } : f));
         }
       }
 
-      // Notificar que la subida está completa
       onUploadComplete();
-      
-      // Cerrar modal después de un delay
+
       setTimeout(() => {
         onClose();
         setFiles([]);
-        setSelectedSubject('');
-        setTopicName('');
+        setSelectedSubject(preselectedSubjectId || '');
+        setTopicName(defaultTopicName || '');
       }, 2000);
-
     } catch (error) {
       console.error('Upload error:', error);
     } finally {
@@ -212,10 +190,7 @@ export const FileUploadModal = ({ isOpen, onClose, onUploadComplete }: FileUploa
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <h2 className="text-xl font-semibold text-gray-800">Upload Files</h2>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-          >
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
             <X size={20} className="text-gray-500" />
           </button>
         </div>
@@ -225,29 +200,31 @@ export const FileUploadModal = ({ isOpen, onClose, onUploadComplete }: FileUploa
           {/* Subject and Topic Selection */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Subject
-              </label>
-              <select
-                value={selectedSubject}
-                onChange={(e) => setSelectedSubject(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-200 focus:border-pink-300"
-              >
-                <option value="">Select a subject</option>
-                {subjects.map((subject) => (
-                  <option key={subject.id} value={subject.id}>
-                    {subject.name}
-                  </option>
-                ))}
-              </select>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+              {preselectedSubjectId ? (
+                <div className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600">
+                  {subjects.find(s => s.id === preselectedSubjectId)?.name || 'Selected Subject'}
+                </div>
+              ) : (
+                <select
+                  value={selectedSubject}
+                  onChange={(e) => setSelectedSubject(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-200 focus:border-pink-300"
+                >
+                  <option value="">Select a subject</option>
+                  {subjects.map((subject) => (
+                    <option key={subject.id} value={subject.id}>{subject.name}</option>
+                  ))}
+                </select>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Topic Name
+                {isTopicOptional ? 'Folder (optional)' : 'Topic Name'}
               </label>
               <Input
                 type="text"
-                placeholder="Enter topic name"
+                placeholder={isTopicOptional ? 'Leave empty to upload at subject root' : 'Enter topic name'}
                 value={topicName}
                 onChange={(e) => setTopicName(e.target.value)}
                 className="border-gray-200 focus:ring-pink-200 focus:border-pink-300"
@@ -352,18 +329,8 @@ export const FileUploadModal = ({ isOpen, onClose, onUploadComplete }: FileUploa
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-100 bg-gray-50">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={isUploading}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleUpload}
-            disabled={!selectedSubject || !topicName || files.length === 0 || isUploading}
-            className="bg-pink-400 hover:bg-pink-500 text-white"
-          >
+          <Button variant="outline" onClick={onClose} disabled={isUploading}>Cancel</Button>
+          <Button onClick={handleUpload} disabled={!selectedSubject || files.length === 0 || (!isTopicOptional && !topicName) || isUploading} className="bg-pink-400 hover:bg-pink-500 text-white">
             {isUploading ? (
               <>
                 <Loader2 size={16} className="mr-2 animate-spin" />
@@ -377,4 +344,4 @@ export const FileUploadModal = ({ isOpen, onClose, onUploadComplete }: FileUploa
       </Card>
     </div>
   );
-}; 
+};

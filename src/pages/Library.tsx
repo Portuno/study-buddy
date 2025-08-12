@@ -68,6 +68,7 @@ export default function Library() {
   const [showAddSubject, setShowAddSubject] = useState(false);
   const [showEditSubject, setShowEditSubject] = useState(false);
   const [editingSubject, setEditingSubject] = useState<any>(null);
+  const [uploadContext, setUploadContext] = useState<{ subjectId?: string; folderName?: string } | null>(null);
 
   const loading = programsLoading || subjectsLoading || materialsLoading || weeklyGoalsLoading;
   const hasError = programsError || subjectsError || materialsError || weeklyGoalsError;
@@ -150,7 +151,8 @@ export default function Library() {
     }
   };
 
-  const handleAddFile = () => {
+  const handleAddFile = (opts?: { subjectId?: string; folderName?: string }) => {
+    setUploadContext(opts || null);
     setShowUpload(true);
   };
 
@@ -488,8 +490,14 @@ export default function Library() {
 
       <FileUploadModal
         isOpen={showUpload}
-        onClose={() => setShowUpload(false)}
+        onClose={() => {
+          setShowUpload(false);
+          setUploadContext(null);
+        }}
         onUploadComplete={handleUploadComplete}
+        preselectedSubjectId={uploadContext?.subjectId}
+        defaultTopicName={uploadContext?.folderName}
+        isTopicOptional={true}
       />
 
       <AddSubjectModal

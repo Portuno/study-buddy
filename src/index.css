@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Soft feminine pastel palette */
+    --background: 330 100% 98%;
+    --foreground: 280 15% 25%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 280 15% 25%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 280 15% 25%;
+
+    /* Soft lavender primary */
+    --primary: 280 45% 75%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Peachy secondary */
+    --secondary: 25 85% 88%;
+    --secondary-foreground: 280 15% 25%;
+
+    /* Very light background tones */
+    --muted: 320 30% 96%;
+    --muted-foreground: 280 10% 55%;
+
+    /* Soft blue accent */
+    --accent: 210 60% 85%;
+    --accent-foreground: 280 15% 25%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 320 25% 90%;
+    --input: 320 25% 92%;
+    --ring: 280 45% 75%;
+
+    --radius: 1.25rem;
+
+    /* Beautiful gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    --gradient-soft: linear-gradient(180deg, hsl(var(--background)), hsl(var(--muted)));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100% / 0.9), hsl(320 30% 96% / 0.5));
+
+    /* Mobile navigation */
+    --nav-background: 0 0% 100% / 0.95;
+    --nav-active: var(--primary);
+    --nav-inactive: 280 10% 65%;
+
+    /* Study colors */
+    --study-focus: 280 45% 75%;
+    --study-break: 25 85% 88%;
+    --study-complete: 140 60% 75%;
+
+    /* Soft shadows */
+    --shadow-soft: 0 4px 20px hsl(280 45% 75% / 0.1);
+    --shadow-card: 0 2px 15px hsl(320 30% 50% / 0.08);
+  }
+
+  .dark {
+    /* Darker feminine palette */
+    --background: 280 25% 8%;
+    --foreground: 320 20% 90%;
+
+    --card: 280 20% 12%;
+    --card-foreground: 320 20% 90%;
+
+    --popover: 280 20% 12%;
+    --popover-foreground: 320 20% 90%;
+
+    --primary: 280 50% 65%;
+    --primary-foreground: 280 25% 8%;
+
+    --secondary: 25 40% 20%;
+    --secondary-foreground: 320 20% 90%;
+
+    --muted: 280 15% 15%;
+    --muted-foreground: 280 10% 65%;
+
+    --accent: 210 40% 65%;
+    --accent-foreground: 280 25% 8%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 280 15% 20%;
+    --input: 280 15% 18%;
+    --ring: 280 50% 65%;
+
+    --nav-background: 280 20% 12% / 0.95;
+    --shadow-soft: 0 4px 20px hsl(280 50% 5% / 0.3);
+    --shadow-card: 0 2px 15px hsl(280 30% 5% / 0.2);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    background: linear-gradient(180deg, hsl(var(--background)), hsl(var(--muted)));
+    min-height: 100vh;
+  }
+
+  /* Mobile-first approach */
+  .mobile-container {
+    @apply max-w-sm mx-auto bg-card/50 backdrop-blur-sm border border-border/50 min-h-screen relative overflow-hidden;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+
+  .gradient-card {
+    background: var(--gradient-card);
+  }
+}

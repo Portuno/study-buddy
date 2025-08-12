@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { BookOpen, Loader2, AlertCircle } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false)
@@ -14,6 +15,7 @@ export default function Login() {
   const [error, setError] = useState('')
   
   const { signIn, signUp } = useAuth()
+  const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -42,6 +44,8 @@ export default function Login() {
           } else {
             setError(error.message || 'Error al iniciar sesión')
           }
+        } else {
+          navigate('/today', { replace: true })
         }
       }
     } catch (error: any) {
@@ -147,7 +151,7 @@ export default function Login() {
             type="button"
             onClick={() => {
               setIsSignUp(!isSignUp)
-              setError('') // Limpiar errores al cambiar modo
+              setError('')
             }}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >

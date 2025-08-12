@@ -19,7 +19,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { AlertTriangle, Bot, Calendar, Loader2, Plus, Send, Trash2, User } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { AlertTriangle, Bot, Calendar, Loader2, Plus, Send, Trash2, User, BookOpen } from "lucide-react";
 
 interface ChatMessage {
   id: string;
@@ -68,23 +76,18 @@ const nowTime = () =>
 export default function Chat() {
   const { user } = useAuth();
 
-  // Sessions
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string>("");
 
-  // Composer
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Start modal state
   const [isStartOpen, setIsStartOpen] = useState(false);
   const [subjects, setSubjects] = useState<SubjectRow[]>([]);
   const [subjectsLoading, setSubjectsLoading] = useState(false);
-  const [subjectSearch, setSubjectSearch] = useState("");
   const [selectedSubject, setSelectedSubject] = useState<SubjectRow | null>(null);
   const [topicInput, setTopicInput] = useState("");
 
-  // Mabot config from env or localStorage (never reading .env files directly)
   const MABOT_BASE_URL = useMemo(() => {
     const envAny = (import.meta as any)?.env || {};
     const fromEnv = envAny.VITE_MABOT_BASE_URL;
@@ -117,14 +120,11 @@ export default function Chat() {
 
   const currentChat = chatSessions.find((c) => c.id === currentChatId) || null;
 
-  // On mount: show blank state (no default chat). Open start modal immediately.
   useEffect(() => {
     setChatSessions([]);
     setCurrentChatId("");
-    setIsStartOpen(true);
   }, []);
 
-  // Load all subjects for the user for selection
   useEffect(() => {
     const load = async () => {
       if (!user) return;
@@ -146,7 +146,6 @@ export default function Chat() {
     load();
   }, [user]);
 
-  // Auth helpers for Mabot
   const loginToMabot = async (): Promise<boolean> => {
     try {
       if (!mabotConfigured || !MABOT_USERNAME || !MABOT_PASSWORD) return false;
@@ -234,7 +233,6 @@ export default function Chat() {
     );
   };
 
-  // Prepare context bundle for the first message
   const prepareSubjectContextText = async (session: ChatSession): Promise<string> => {
     if (!session.subjectId || !user) return "";
 
@@ -255,12 +253,11 @@ export default function Chat() {
       return "No materials found for this subject yet.";
     }
 
-    // Optionally filter by topic (simple title/content contains)
     const topic = (session.topic || "").toLowerCase().trim();
     const filtered = !topic
       ? (materials as StudyMaterialRow[])
       : (materials as StudyMaterialRow[]).filter((m) =>
-          (m.title?.toLowerCase().includes(topic)) || (m.content || "").toLowerCase().includes(topic)
+          m.title?.toLowerCase().includes(topic) || (m.content || "").toLowerCase().includes(topic)
         );
 
     const lines: string[] = [];
@@ -272,7 +269,7 @@ export default function Chat() {
         try {
           const { data: urlData, error: urlErr } = await supabase.storage
             .from("study-materials")
-            .createSignedUrl(m.file_path, 60 * 60); // 1 hour
+            .createSignedUrl(m.file_path, 60 * 60);
           if (!urlErr && urlData?.signedUrl) {
             urlNote = ` [url: ${urlData.signedUrl}]`;
           }
@@ -291,7 +288,6 @@ export default function Chat() {
   const prepareAgendaContextText = async (): Promise<string> => {
     if (!user) return "";
 
-    // Upcoming events
     const { data: events } = await supabase
       .from("subject_events")
       .select("name, event_type, event_date, description")
@@ -299,7 +295,6 @@ export default function Chat() {
       .order("event_date", { ascending: true })
       .limit(50);
 
-    // Weekly schedules
     const { data: schedules } = await supabase
       .from("subject_schedules")
       .select("day_of_week, start_time, end_time, location, description")
@@ -307,7 +302,6 @@ export default function Chat() {
       .order("day_of_week", { ascending: true })
       .limit(50);
 
-    // Weekly goals
     const { data: goals } = await supabase
       .from("weekly_goals")
       .select("target_hours, current_hours, week_start, week_end, subjects:subject_id ( id, name )")
@@ -446,7 +440,6 @@ export default function Chat() {
     setInputMessage("");
     setIsLoading(true);
 
-    // First-message context preparation
     let contextText: string | undefined = undefined;
     if (!currentChat.contextUploaded) {
       contextText = currentChat.contextType === "agenda" ? await prepareAgendaContextText() : await prepareSubjectContextText(currentChat);
@@ -482,11 +475,10 @@ export default function Chat() {
       return;
     }
 
-    // Error from Mabot
     const errorMessage: ChatMessage = {
       id: (Date.now() + 1).toString(),
       type: "bot",
-      message: `Error: No se pudo conectar con el asistente AI. ${result.error}`,
+      message: `Error: failed to connect to the AI assistant. ${result.error}`,
       time: nowTime(),
     };
 
@@ -496,7 +488,6 @@ export default function Chat() {
     setIsLoading(false);
   };
 
-  // Create new chat session helpers
   const startAgendaChat = () => {
     const session: ChatSession = {
       id: `${Date.now()}`,
@@ -506,7 +497,7 @@ export default function Chat() {
         {
           id: "1",
           type: "bot",
-          message: `Listo. Soy tu agenda académica. Pregúntame sobre eventos, horarios o metas.`,
+          message: `Ready. I am your academic agenda. Ask me about events, schedules, or goals.`,
           time: nowTime(),
         },
       ],
@@ -531,7 +522,7 @@ export default function Chat() {
         {
           id: "1",
           type: "bot",
-          message: `Nuevo chat para ${subject.name}${topic ? ` (tema: ${topic})` : ""}. ¿Qué te gustaría analizar?`,
+          message: `New chat for ${subject.name}${topic ? ` (topic: ${topic})` : ""}. What would you like to explore?`,
           time: nowTime(),
         },
       ],
@@ -553,32 +544,29 @@ export default function Chat() {
 
   const showMabotBanner = !mabotConfigured || !MABOT_USERNAME || !MABOT_PASSWORD;
 
-  const filteredSubjects = subjects.filter((s) => s.name.toLowerCase().includes(subjectSearch.toLowerCase().trim()));
-
   return (
     <div className="flex flex-col h-screen pb-20">
-      {/* Header */}
       <div className="flex items-center justify-between pt-8 pb-4 px-6">
         <div className="w-10" />
         <div className="text-center">
           <h1 className="text-2xl font-light text-foreground/90 mb-1">Chat</h1>
-          <p className="text-muted-foreground text-sm">Inicia una conversación nueva o continúa una existente</p>
+          <p className="text-muted-foreground text-sm">Start a new conversation or continue an existing one</p>
         </div>
         <div className="flex items-center gap-2">
           {currentChat && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="rounded-xl">Sesión</Button>
+                <Button variant="outline" size="sm" className="rounded-xl">Session</Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem className="cursor-pointer" onClick={() => deleteChat(currentChat.id)}>
                   <Trash2 size={14} className="mr-2 text-destructive" />
-                  Borrar chat
+                  Delete chat
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="cursor-pointer" onClick={() => setIsStartOpen(true)}>
                   <Plus size={14} className="mr-2" />
-                  Nuevo chat
+                  New chat
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -590,33 +578,31 @@ export default function Chat() {
         <div className="mx-6 mb-2 rounded-xl border border-yellow-300/40 bg-yellow-500/5 px-3 py-2 text-yellow-700 flex items-center gap-2" role="alert" aria-live="polite">
           <AlertTriangle size={16} />
           <p className="text-xs">
-            Configura `VITE_MABOT_BASE_URL`, `VITE_MABOT_USERNAME` y `VITE_MABOT_PASSWORD` o usa localStorage (`mabot_base_url`, `mabot_username`, `mabot_password`).
+            Configure `VITE_MABOT_BASE_URL`, `VITE_MABOT_USERNAME`, and `VITE_MABOT_PASSWORD` or use localStorage (`mabot_base_url`, `mabot_username`, `mabot_password`).
           </p>
         </div>
       )}
 
-      {/* Blank state when no chat */}
       {!currentChat && (
         <div className="flex-1 flex items-center justify-center px-6">
           <Dialog open={isStartOpen} onOpenChange={setIsStartOpen}>
             <DialogTrigger asChild>
               <Button
                 className="w-40 h-40 rounded-3xl flex flex-col items-center justify-center text-foreground bg-muted hover:bg-muted/80 border border-border/30 shadow-sm"
-                aria-label="Iniciar nuevo chat"
+                aria-label="Start a new chat"
               >
                 <Plus size={40} className="mb-2" />
-                Nuevo chat
+                New chat
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-xl">
               <DialogHeader>
-                <DialogTitle>Vincular conversación</DialogTitle>
+                <DialogTitle>Link conversation</DialogTitle>
                 <DialogDescription>
-                  Elige hablar con tu agenda o con una materia. Puedes añadir un tema específico.
+                  Choose to talk with your agenda or a subject. You can optionally add a topic for focus.
                 </DialogDescription>
               </DialogHeader>
 
-              {/* Agenda option */}
               <Card className="p-4 rounded-2xl border border-border/30 mb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -625,77 +611,61 @@ export default function Chat() {
                     </div>
                     <div>
                       <p className="font-medium">Agenda</p>
-                      <p className="text-sm text-muted-foreground">Calendario académico y horarios</p>
+                      <p className="text-sm text-muted-foreground">Academic calendar and schedules</p>
                     </div>
                   </div>
-                  <Button onClick={startAgendaChat} className="rounded-xl">Hablar con Agenda</Button>
+                  <Button onClick={startAgendaChat} className="rounded-xl">Chat with Agenda</Button>
                 </div>
               </Card>
 
-              {/* Subjects list */}
               <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Input
-                    placeholder="Buscar materia..."
-                    value={subjectSearch}
-                    onChange={(e) => setSubjectSearch(e.target.value)}
-                    className="rounded-xl"
-                    aria-label="Buscar materia"
-                  />
+                <p className="text-sm font-medium text-foreground/80">Subjects</p>
+                <div className="rounded-xl border border-border/30">
+                  <Command className="rounded-xl">
+                    <CommandInput placeholder="Search subject..." />
+                    <CommandList className="max-h-64 overflow-auto">
+                      <CommandEmpty>No subjects found.</CommandEmpty>
+                      <CommandGroup heading="Available">
+                        {subjectsLoading ? (
+                          <div className="p-3 text-sm text-muted-foreground">Loading...</div>
+                        ) : (
+                          subjects.map((s) => (
+                            <CommandItem key={s.id} onSelect={() => setSelectedSubject(s)} className="cursor-pointer">
+                              <BookOpen className="mr-2 h-4 w-4 text-primary" />
+                              <span>{s.name}</span>
+                            </CommandItem>
+                          ))
+                        )}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
                 </div>
 
-                <div className="max-h-64 overflow-auto rounded-xl border border-border/30">
-                  {subjectsLoading ? (
-                    <div className="p-4 text-sm text-muted-foreground">Cargando materias...</div>
-                  ) : filteredSubjects.length === 0 ? (
-                    <div className="p-4 text-sm text-muted-foreground">No hay materias. Crea una en Library.</div>
-                  ) : (
-                    <div className="divide-y divide-border/30">
-                      {filteredSubjects.map((s) => (
-                        <button
-                          key={s.id}
-                          onClick={() => setSelectedSubject(s)}
-                          className={`w-full text-left p-3 hover:bg-muted/50 ${
-                            selectedSubject?.id === s.id ? "bg-muted/50" : ""
-                          }`}
-                          aria-label={`Seleccionar ${s.name}`}
-                          tabIndex={0}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") setSelectedSubject(s);
-                          }}
-                        >
-                          <p className="font-medium">{s.name}</p>
-                          {selectedSubject?.id === s.id && (
-                            <div className="mt-2 space-y-2">
-                              <Input
-                                placeholder="Tema opcional (p. ej., Derivadas, Unidad 3)"
-                                value={topicInput}
-                                onChange={(e) => setTopicInput(e.target.value)}
-                                className="rounded-xl"
-                                aria-label="Tema opcional"
-                              />
-                              <div className="flex gap-2">
-                                <Button className="rounded-xl" onClick={() => startSubjectChat(s, topicInput)}>
-                                  Empezar con tema
-                                </Button>
-                                <Button variant="outline" className="rounded-xl" onClick={() => startSubjectChat(s)}>
-                                  Hablar con la materia
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-                        </button>
-                      ))}
+                {selectedSubject && (
+                  <div className="mt-2 space-y-2">
+                    <Input
+                      placeholder="Optional topic (e.g., Derivatives, Unit 3)"
+                      value={topicInput}
+                      onChange={(e) => setTopicInput(e.target.value)}
+                      className="rounded-xl"
+                      aria-label="Optional topic"
+                    />
+                    <div className="flex gap-2">
+                      <Button className="rounded-xl" onClick={() => startSubjectChat(selectedSubject, topicInput)}>
+                        Start with topic
+                      </Button>
+                      <Button variant="outline" className="rounded-xl" onClick={() => startSubjectChat(selectedSubject)}>
+                        Chat with subject
+                      </Button>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </DialogContent>
           </Dialog>
         </div>
       )}
 
-      {/* Messages */}
       {currentChat && (
         <div className="flex-1 px-6 space-y-4 overflow-y-auto">
           {currentChat.messages.map((msg) => (
@@ -731,7 +701,7 @@ export default function Chat() {
                   <Bot size={16} className="text-primary" />
                   <div className="flex items-center gap-1">
                     <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Pensando…</span>
+                    <span className="text-sm text-muted-foreground">Thinking...</span>
                   </div>
                 </div>
               </Card>
@@ -740,12 +710,13 @@ export default function Chat() {
         </div>
       )}
 
-      {/* Composer */}
       {currentChat && (
         <div className="px-6 pb-4">
           <div className="flex gap-2">
             <Input
-              placeholder={currentChat.contextType === "agenda" ? "Pregúntale a tu agenda…" : `Pregunta sobre ${currentChat.title}…`}
+              placeholder={
+                currentChat.contextType === "agenda" ? "Ask your agenda..." : `Ask about ${currentChat.title}...`
+              }
               className="flex-1 rounded-2xl border-border/30 bg-card/50 backdrop-blur-sm"
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
@@ -756,14 +727,14 @@ export default function Chat() {
                 }
               }}
               disabled={isLoading}
-              aria-label="Mensaje"
+              aria-label="Message"
             />
             <Button
               size="icon"
               className="rounded-2xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
               onClick={handleSendMessage}
               disabled={!inputMessage.trim() || isLoading}
-              aria-label="Enviar mensaje"
+              aria-label="Send message"
             >
               <Send size={18} />
             </Button>

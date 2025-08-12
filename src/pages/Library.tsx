@@ -162,8 +162,10 @@ export default function Library() {
 
   const handleUploadComplete = () => {
     // Refresh data after upload
-    if (selectedProgram) {
-      fetchMaterials(selectedProgram.id);
+    if (selectedSubject?.id) {
+      fetchMaterials(selectedSubject.id);
+    } else {
+      fetchMaterials();
     }
   };
 

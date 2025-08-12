@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { X, Upload, FileText, Image, Video, Headphones, File, Loader2, CheckCircle2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,6 +59,11 @@ export const FileUploadModal = ({ isOpen, onClose, onUploadComplete, preselected
   const [topicName, setTopicName] = useState(defaultTopicName || '');
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+
+  useEffect(() => {
+    setSelectedSubject(preselectedSubjectId || '');
+    setTopicName(defaultTopicName || '');
+  }, [preselectedSubjectId, defaultTopicName]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
